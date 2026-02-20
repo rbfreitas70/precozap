@@ -1,0 +1,2738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#00C853">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PreçoZap">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<title>PreçoZap ⚡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ── DARK THEME (padrão) ── */
+:root {
+  --green: #00C853;
+  --green-dark: #009624;
+  --green-light: #69F0AE;
+  --green-dim: rgba(0,200,83,0.12);
+  --green-glow: rgba(0,200,83,0.35);
+  --black: #0A0E0B;
+  --surface: #111612;
+  --surface2: #171E18;
+  --surface3: #1E271F;
+  --border: rgba(0,200,83,0.15);
+  --border-hover: rgba(0,200,83,0.4);
+  --text: #E8F5E9;
+  --text-dim: #7B9E81;
+  --text-muted: #4A6B4F;
+  --red: #FF5252;
+  --yellow: #FFD740;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 24px;
+  --nav-h: 72px;
+  --header-h: 64px;
+  --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+  --theme-icon: '☀️';
+}
+
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --green: #00A844;
+  --green-dark: #007830;
+  --green-light: #00C853;
+  --green-dim: rgba(0,168,68,0.10);
+  --green-glow: rgba(0,168,68,0.20);
+  --black: #F4FAF5;
+  --surface: #FFFFFF;
+  --surface2: #F0F7F2;
+  --surface3: #E4F0E8;
+  --border: rgba(0,168,68,0.18);
+  --border-hover: rgba(0,168,68,0.45);
+  --text: #0F2412;
+  --text-dim: #2D5C38;
+  --text-muted: #6B9E76;
+  --red: #D32F2F;
+  --yellow: #F9A825;
+  --theme-icon: '🌙';
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── THEME TOGGLE ── */
+.theme-toggle {
+  width: 36px; height: 36px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.theme-toggle:hover { border-color: var(--green); transform: rotate(20deg); }
+
+/* ── SMOOTH THEME TRANSITION ── */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
+}
+/* Exceções: animações não devem herdar a transition global */
+.spinner, .toast, [style*="animation"] { transition: none !important; }
+
+/* ── APP SHELL ── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  background: var(--black);
+  box-shadow: 0 0 80px rgba(0,200,83,0.06);
+}
+
+/* ── HEADER ── */
+.app-header {
+  height: var(--header-h);
+  background: var(--black);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--green);
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.logo-bolt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  background: var(--green);
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.location-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: var(--transition);
+  max-width: 160px;
+}
+.location-pill:hover { border-color: var(--green); color: var(--text); }
+.location-pill .pin { color: var(--green); font-size: 11px; }
+.location-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── SCREENS ── */
+.app-main {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding-bottom: calc(var(--nav-h) + 16px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.container { padding: 20px 16px; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  height: var(--nav-h);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: var(--transition);
+  position: relative;
+  padding-bottom: 4px;
+}
+.nav-item:hover { color: var(--text-dim); }
+.nav-item.active { color: var(--green); }
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 2px;
+  background: var(--green);
+  border-radius: 0 0 4px 4px;
+}
+
+.nav-icon { font-size: 20px; line-height: 1; }
+.nav-label { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: var(--transition);
+}
+.card:hover { border-color: var(--border-hover); }
+.card-glow { box-shadow: 0 0 24px var(--green-glow); border-color: var(--green); }
+
+/* ── STATS STRIP ── */
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 10px;
+  text-align: center;
+}
+.stat-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+}
+.stat-label { font-size: 10px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+/* ── SECTION HEADER ── */
+.sec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.sec-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.btn-link {
+  font-size: 12px;
+  color: var(--green);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: var(--transition);
+}
+.btn-link:hover { background: var(--green-dim); }
+
+/* ── SUPERMARKET CARDS ── */
+.market-list { display: flex; flex-direction: column; gap: 10px; }
+.market-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.market-card:hover { border-color: var(--border-hover); background: var(--surface3); }
+.market-logo {
+  width: 44px; height: 44px;
+  background: var(--surface3);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.market-info { flex: 1; min-width: 0; }
+.market-name { font-weight: 600; font-size: 14px; color: var(--text); }
+.market-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.market-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--green-dim);
+  color: var(--green);
+  border: 1px solid rgba(0,200,83,0.25);
+}
+.market-badge.atacado { background: rgba(255,215,64,0.1); color: var(--yellow); border-color: rgba(255,215,64,0.25); }
+
+/* ── OFFERS ── */
+.offers-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.offers-scroll::-webkit-scrollbar { display: none; }
+.offer-card {
+  min-width: 150px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+.offer-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--green);
+}
+.offer-emoji { font-size: 28px; margin-bottom: 8px; display: block; }
+.offer-name { font-size: 12px; color: var(--text-dim); }
+.offer-price { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--green); margin-top: 4px; }
+.offer-market { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+/* ── LISTS ── */
+.lists-grid { display: flex; flex-direction: column; gap: 12px; }
+.list-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: var(--transition);
+}
+.list-card:hover { border-color: var(--border-hover); }
+.list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.list-name { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+.list-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.list-items-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.item-chip {
+  font-size: 11px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 3px 10px;
+  color: var(--text-dim);
+}
+.item-chip.more { color: var(--text-muted); }
+.list-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+.list-count { font-size: 12px; color: var(--text-muted); }
+.list-actions { display: flex; gap: 8px; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--green);
+  color: var(--black);
+  font-weight: 700;
+}
+.btn-primary:hover { background: var(--green-light); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-secondary {
+  background: var(--surface3);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--green); color: var(--green); }
+.btn-danger { background: rgba(255,82,82,0.12); color: var(--red); border: 1px solid rgba(255,82,82,0.25); }
+.btn-danger:hover { background: rgba(255,82,82,0.2); }
+.btn-sm { padding: 7px 12px; font-size: 12px; border-radius: 8px; }
+.btn-icon { padding: 8px; border-radius: 8px; font-size: 16px; }
+
+/* ── SCREEN HEADER ── */
+.screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.screen-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* ── COMPARE SCREEN ── */
+.compare-select-wrap {
+  margin-bottom: 16px;
+}
+.select-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.select-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 12px 16px;
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234A6B4F' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.select-input:focus { border-color: var(--green); }
+.select-input option { background: var(--surface2); }
+
+.filters-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
+}
+.filters-row::-webkit-scrollbar { display: none; }
+.filter-btn {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  font-family: 'DM Sans', sans-serif;
+}
+.filter-btn:hover { border-color: var(--green); color: var(--green); }
+.filter-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+
+.savings-banner {
+  background: linear-gradient(135deg, rgba(0,200,83,0.15), rgba(0,200,83,0.05));
+  border: 1px solid rgba(0,200,83,0.3);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.savings-icon { font-size: 32px; }
+.savings-text .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.savings-text .amount { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--green); }
+.savings-text .desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+.result-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+  transition: var(--transition);
+}
+.result-card:hover { border-color: var(--border-hover); }
+.result-card.best { border-color: var(--green); box-shadow: 0 0 0 1px var(--green), 0 4px 24px var(--green-glow); }
+.result-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.result-rank {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.result-rank.gold { background: rgba(255,215,64,0.12); border-color: var(--yellow); color: var(--yellow); }
+.result-info { flex: 1; }
+.result-name { font-weight: 600; font-size: 14px; }
+.result-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.result-price {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--green);
+}
+.result-best-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--green);
+  color: var(--black);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.result-body {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.result-items { display: flex; flex-direction: column; gap: 6px; }
+.result-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.result-item-name { color: var(--text-dim); }
+.result-item-price { color: var(--text); font-weight: 500; }
+.result-item-price.low { color: var(--green); }
+
+/* ── PROFILE ── */
+.profile-hero {
+  text-align: center;
+  padding: 24px 0;
+  margin-bottom: 20px;
+}
+.profile-avatar-wrap {
+  width: 80px; height: 80px;
+  background: var(--green-dim);
+  border: 2px solid var(--green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 12px;
+}
+.profile-name { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; }
+.profile-email { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+.settings-group {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.settings-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 10px 16px 0;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: var(--transition);
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-row:hover { background: var(--surface3); }
+.setting-row-icon { font-size: 18px; }
+.setting-row-content { flex: 1; }
+.setting-row-title { font-size: 14px; color: var(--text); }
+.setting-row-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.setting-row-right { color: var(--text-muted); font-size: 18px; }
+
+/* ── TOGGLE ── */
+.toggle {
+  position: relative;
+  width: 44px; height: 24px;
+  flex-shrink: 0;
+}
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: var(--transition);
+}
+.toggle input:checked ~ .toggle-track { background: var(--green-dim); border-color: var(--green); }
+.toggle input:checked ~ .toggle-thumb { left: 23px; background: var(--green); }
+
+/* ── HISTORY ITEMS ── */
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.history-item:last-child { border-bottom: none; }
+.history-icon { font-size: 16px; color: var(--text-muted); }
+.history-text { flex: 1; font-size: 13px; color: var(--text-dim); }
+.history-time { font-size: 11px; color: var(--text-muted); }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+}
+.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.empty-title { font-family: 'Syne', sans-serif; font-size: 18px; color: var(--text-dim); margin-bottom: 8px; }
+.empty-desc { font-size: 13px; line-height: 1.6; }
+
+/* ── MODALS ── */
+.modal-overlay-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay-bg.open { opacity: 1; pointer-events: all; }
+
+.modal-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 24px 24px 0 0;
+  z-index: 101;
+  transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  max-height: 90svh;
+  display: flex;
+  flex-direction: column;
+}
+.modal-sheet.open { transform: translateX(-50%) translateY(0); }
+
+.modal-handle {
+  width: 36px; height: 4px;
+  background: var(--border);
+  border-radius: 99px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 10px;
+  flex-shrink: 0;
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+.modal-close-btn {
+  width: 32px; height: 32px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-dim);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.modal-close-btn:hover { border-color: var(--red); color: var(--red); }
+.modal-body { flex: 1; overflow-y: auto; padding: 8px 20px 20px; }
+.modal-foot {
+  padding: 16px 20px;
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.modal-foot .btn { flex: 1; padding: 13px; font-size: 14px; }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
+.input-field {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 12px 14px;
+  outline: none;
+  transition: var(--transition);
+}
+.input-field::placeholder { color: var(--text-muted); }
+.input-field:focus { border-color: var(--green); }
+textarea.input-field { resize: vertical; min-height: 120px; }
+
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
+.input-row .input-field { flex: 1; }
+.input-row .qty-field { width: 70px; flex: none; }
+
+.add-item-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.add-item-bar .input-field { flex: 1; }
+
+.items-list { display: flex; flex-direction: column; gap: 6px; }
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.item-row-name { flex: 1; font-size: 13px; color: var(--text); }
+.item-row-qty { font-size: 12px; color: var(--text-muted); background: var(--surface2); border-radius: 6px; padding: 2px 8px; }
+.item-row-del {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 4px;
+  border-radius: 4px;
+}
+.item-row-del:hover { color: var(--red); background: rgba(255,82,82,0.1); }
+
+.voice-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.voice-actions .btn { flex: 1; }
+
+/* ── LOADING ── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,14,11,0.85);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  backdrop-filter: blur(4px);
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 13px; color: var(--text-dim); }
+
+/* ── TOASTS ── */
+.toast-container {
+  position: fixed;
+  top: calc(var(--header-h) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 32px);
+  max-width: 448px;
+}
+.toast {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast.success { background: rgba(0,200,83,0.15); border: 1px solid rgba(0,200,83,0.4); color: var(--green-light); }
+.toast.error { background: rgba(255,82,82,0.15); border: 1px solid rgba(255,82,82,0.4); color: #FF8A80; }
+.toast.info { background: rgba(105,240,174,0.1); border: 1px solid var(--border); color: var(--text-dim); }
+
+/* ── MAP ── */
+.map-container {
+  height: 55svh;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+#map { height: 100%; width: 100%; }
+
+/* ── WELCOME HERO ── */
+.hero-section {
+  padding: 4px 0 20px;
+}
+.hero-greeting {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.hero-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  line-height: 1.1;
+  color: var(--text);
+}
+.hero-title span { color: var(--green); }
+
+/* ── SEARCH BAR ── */
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 24px;
+  transition: var(--transition);
+}
+.search-wrap:focus-within { border-color: var(--green); }
+.search-icon { font-size: 16px; color: var(--text-muted); flex-shrink: 0; }
+.search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+}
+.search-input::placeholder { color: var(--text-muted); }
+
+/* ── GPS PULSE ANIMATION ── */
+@keyframes gpsPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.4); }
+}
+
+/* ── RESPONSIVE DESKTOP ── */
+@media (min-width: 480px) {
+  body { background: #050706; }
+  #app {
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+}
+
+/* ── COMPARE EMPTY ── */
+.compare-placeholder {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+.compare-placeholder-icon { font-size: 56px; margin-bottom: 12px; }
+.compare-placeholder-text { font-size: 14px; line-height: 1.6; }
+
+/* ── CATEGORY TAG ── */
+.cat-tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface3);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+/* ── SECTION SPACING ── */
+.section { margin-bottom: 28px; }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  background: var(--green);
+  color: var(--black);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 99px;
+  padding: 0 5px;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="logo">
+      <span class="logo-bolt">⚡</span>
+      PreçoZap
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Alternar tema">☀️</button>
+      <div class="location-pill" onclick="openModal('locationModal')">
+        <span class="pin" id="locationPin">📍</span>
+        <span id="headerLocation">Detectando...</span>
+        <span id="gpsAccuracyDot" style="display:none;width:6px;height:6px;background:var(--green);border-radius:50%;flex-shrink:0;animation:gpsPulse 2s infinite"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREENS -->
+  <main class="app-main">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <section id="dashboardScreen" class="screen active">
+      <div class="container">
+        <div class="hero-section">
+          <div class="hero-greeting">Bom dia! 👋</div>
+          <h2 class="hero-title">Encontre os<br><span>melhores preços</span></h2>
+        </div>
+
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" placeholder="Buscar produto ou mercado..." id="searchInput" oninput="handleSearch(this.value)">
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-strip">
+          <div class="stat-card">
+            <div class="stat-num" id="statMarkets">15</div>
+            <div class="stat-label">Mercados</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statLists">0</div>
+            <div class="stat-label">Listas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statSavings">R$0</div>
+            <div class="stat-label">Economizado</div>
+          </div>
+        </div>
+
+        <!-- Nearby Supermarkets -->
+        <div class="section">
+          <div class="sec-header">
+            <div class="sec-title">Perto de Você 🏪</div>
+            <button class="btn-link" onclick="openMapModal()">Ver mapa</button>
+          </div>
+          <div class="market-list" id="nearbyList">
+            <!-- JS -->
+          </div>
+        </div>
+
+        <!-- Featured Offers -->
+        <div class="section">
+          <div class="sec-header">
+            <div class="sec-title">Ofertas do Dia 🔥</div>
+          </div>
+          <div class="offers-scroll" id="offersList">
+            <!-- JS -->
+          </div>
+        </div>
+
+        <!-- Recent Lists -->
+        <div class="section">
+          <div class="sec-header">
+            <div class="sec-title">Listas Recentes</div>
+            <button class="btn-link" onclick="navigateTo('lists')">Ver todas</button>
+          </div>
+          <div id="recentListsContainer">
+            <!-- JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ LISTS ═══ -->
+    <section id="listsScreen" class="screen">
+      <div class="container">
+        <div class="screen-header">
+          <div class="screen-title">Minhas Listas</div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('createListModal')">
+            ➕ Nova Lista
+          </button>
+        </div>
+        <div id="listsContainer" class="lists-grid">
+          <!-- JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ COMPARE ═══ -->
+    <section id="compareScreen" class="screen">
+      <div class="container">
+        <div class="screen-header">
+          <div class="screen-title">Comparar Preços</div>
+        </div>
+
+        <div class="compare-select-wrap">
+          <div class="select-label">Selecione uma lista</div>
+          <select id="compareSelect" class="select-input" onchange="runComparison()">
+            <option value="">Escolha uma lista...</option>
+          </select>
+        </div>
+
+        <div id="comparisonContent">
+          <div class="compare-placeholder">
+            <div class="compare-placeholder-icon">📊</div>
+            <div class="compare-placeholder-text">Selecione uma lista de compras<br>para comparar preços em até<br><strong style="color:var(--green)">15 supermercados</strong> próximos</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ PROFILE ═══ -->
+    <section id="profileScreen" class="screen">
+      <div class="container">
+        <div class="screen-header">
+          <div class="screen-title">Perfil</div>
+          <button class="btn btn-secondary btn-sm" onclick="openModal('editProfileModal')">✏️ Editar</button>
+        </div>
+
+        <div class="profile-hero">
+          <div class="profile-avatar-wrap" id="profileAvatar">👤</div>
+          <div class="profile-name" id="profileName">Usuário PreçoZap</div>
+          <div class="profile-email" id="profileEmail">usuario@precozap.com</div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-group-title">Preferências</div>
+          <div class="setting-row">
+            <span class="setting-row-icon">🔔</span>
+            <div class="setting-row-content">
+              <div class="setting-row-title">Notificações</div>
+              <div class="setting-row-sub">Alertas de promoções</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="notifToggle" checked onchange="savePrefs()">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span class="setting-row-icon">📍</span>
+            <div class="setting-row-content">
+              <div class="setting-row-title">Localização</div>
+              <div class="setting-row-sub">Permitir GPS</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="locationToggle" checked onchange="savePrefs()">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </label>
+          </div>
+          <button class="setting-row" onclick="openModal('locationModal')">
+            <span class="setting-row-icon">🗺️</span>
+            <div class="setting-row-content">
+              <div class="setting-row-title">Alterar Localização</div>
+              <div class="setting-row-sub">Definir manualmente</div>
+            </div>
+            <span class="setting-row-right">›</span>
+          </button>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-group-title">Histórico</div>
+          <div class="modal-body" style="padding:0;">
+            <div id="historyList" style="padding: 0 16px;">
+              <!-- JS -->
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="settings-group-title">Dados</div>
+          <button class="setting-row" id="installAppBtn" onclick="installApp()" style="display:none;">
+            <span class="setting-icon">📲</span>
+            <div class="setting-info">
+              <div class="setting-title">Instalar App</div>
+              <div class="setting-desc">Adicionar à tela inicial</div>
+            </div>
+            <span class="setting-arrow">›</span>
+          </button>
+          <button class="setting-row" onclick="clearAllData()">
+            <span class="setting-row-icon">🗑️</span>
+            <div class="setting-row-content">
+              <div class="setting-row-title" style="color:var(--red)">Limpar todos os dados</div>
+              <div class="setting-row-sub">Remove listas e histórico</div>
+            </div>
+            <span class="setting-row-right">›</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-screen="dashboard" onclick="navigateTo('dashboard')">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Início</span>
+    </button>
+    <button class="nav-item" data-screen="lists" onclick="navigateTo('lists')">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Listas</span>
+    </button>
+    <button class="nav-item" data-screen="compare" onclick="navigateTo('compare')">
+      <span class="nav-icon">💰</span>
+      <span class="nav-label">Comparar</span>
+    </button>
+    <button class="nav-item" data-screen="profile" onclick="navigateTo('profile')">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Perfil</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ═══════════════ MODALS ═══════════════ -->
+<div class="modal-overlay-bg" id="modalOverlay" onclick="closeAllModals()"></div>
+
+<!-- Create List Modal -->
+<div class="modal-sheet" id="createListModal">
+  <div class="modal-handle"></div>
+  <div class="modal-head">
+    <div class="modal-title">Nova Lista 📋</div>
+    <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-group">
+      <label class="form-label">Nome da Lista</label>
+      <input type="text" class="input-field" id="listNameInput" placeholder="Ex: Compras da semana">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Adicionar Itens</label>
+      <div class="add-item-bar">
+        <input type="text" class="input-field" id="itemInput" placeholder="Nome do produto" onkeypress="handleItemKey(event)">
+        <input type="number" class="input-field qty-field" id="quantityInput" placeholder="Qtd" min="1" value="1">
+        <button class="btn btn-primary btn-icon" onclick="addItemToList()" style="flex-shrink:0;height:44px;width:44px;">➕</button>
+      </div>
+      <div class="voice-actions">
+        <button class="btn btn-secondary btn-sm" onclick="importItems()">📄 Importar Texto</button>
+        <button class="btn btn-secondary btn-sm" onclick="simulateVoice()">🎤 Voz</button>
+      </div>
+    </div>
+    <div class="items-list" id="newListItems"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-secondary" onclick="closeAllModals()">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveList()">Criar Lista ✓</button>
+  </div>
+</div>
+
+<!-- Import Text Modal -->
+<div class="modal-sheet" id="importModal">
+  <div class="modal-handle"></div>
+  <div class="modal-head">
+    <div class="modal-title">Importar Lista</div>
+    <button class="modal-close-btn" onclick="closeModal('importModal')">✕</button>
+  </div>
+  <div class="modal-body">
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">Cole sua lista — um item por linha. Quantidade é opcional:</p>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.7;background:var(--surface3);border-radius:8px;padding:8px 12px;">
+      Arroz 5kg<br>Feijão 2<br>3x Leite<br>Frango - 1,5kg<br>Café x2
+    </div>
+    <textarea class="input-field" id="importTextarea" style="min-height:150px" placeholder="Arroz 5kg&#10;Feijão 2&#10;3x Leite&#10;Frango&#10;Café x2"></textarea>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-secondary" onclick="closeModal('importModal')">Cancelar</button>
+    <button class="btn btn-primary" onclick="processImport()">Importar ✓</button>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal-sheet" id="editProfileModal">
+  <div class="modal-handle"></div>
+  <div class="modal-head">
+    <div class="modal-title">Editar Perfil</div>
+    <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input type="text" class="input-field" id="editName" placeholder="Seu nome">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" class="input-field" id="editEmail" placeholder="seu@email.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Avatar</label>
+      <select class="input-field" id="editAvatar">
+        <option value="👤">👤 Padrão</option>
+        <option value="😊">😊 Feliz</option>
+        <option value="😎">😎 Legal</option>
+        <option value="🤓">🤓 Nerd</option>
+        <option value="👨">👨 Homem</option>
+        <option value="👩">👩 Mulher</option>
+      </select>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-secondary" onclick="closeAllModals()">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveProfile()">Salvar ✓</button>
+  </div>
+</div>
+
+<!-- Location Modal -->
+<div class="modal-sheet" id="locationModal">
+  <div class="modal-handle"></div>
+  <div class="modal-head">
+    <div class="modal-title">Localização 📍</div>
+    <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
+  </div>
+  <div class="modal-body">
+    <button class="btn btn-primary" id="gpsBtn" style="width:100%;margin-bottom:16px" onclick="requestGPS()">🎯 Usar minha localização atual</button>
+    <div id="nearbyNeighborhoods" style="margin-bottom:16px;">
+      <!-- populated by JS when GPS is available -->
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ou digite manualmente</label>
+      <input type="text" class="input-field" id="manualLocation" placeholder="Ex: Pinheiros, São Paulo">
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-secondary" onclick="closeAllModals()">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveManualLocation()">Confirmar ✓</button>
+  </div>
+</div>
+
+<!-- Map Modal -->
+<div class="modal-sheet" id="mapModal" style="max-height: 85svh;">
+  <div class="modal-handle"></div>
+  <div class="modal-head">
+    <div class="modal-title">Mapa de Supermercados</div>
+    <button class="modal-close-btn" onclick="closeAllModals()">✕</button>
+  </div>
+  <div class="modal-body" style="padding-top:8px;">
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text-muted);text-align:center;">
+      Clique em um marcador para ver detalhes
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay" style="display:none;">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Carregando...</div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ══════════════════════════════════════════
+// CATEGORIA EMOJI
+// ══════════════════════════════════════════
+function storeEmoji(tags) {
+  const name = (tags.name || '').toLowerCase();
+  const shop = (tags.shop || '').toLowerCase();
+  if (name.includes('atacad') || name.includes('assaí') || name.includes("sam's") || name.includes('makro')) return { emoji:'📦', type:'atacado' };
+  if (name.includes('carrefour') || name.includes('extra') || name.includes('walmart')) return { emoji:'🛒', type:'varejo' };
+  if (name.includes('pão de açúcar') || name.includes('supermarket') || name.includes('super')) return { emoji:'🛍️', type:'varejo' };
+  if (name.includes('dia') || name.includes('mercado')) return { emoji:'🏪', type:'varejo' };
+  if (shop === 'supermarket') return { emoji:'🛒', type:'varejo' };
+  if (shop === 'wholesale') return { emoji:'📦', type:'atacado' };
+  return { emoji:'🏬', type:'varejo' };
+}
+
+// Supermercados dinâmicos (preenchidos pela Overpass API)
+let SUPERMARKETS = [];
+
+// Catálogo de preços de referência (Open Food Facts + IBGE IPCA médios BR 2024)
+const PRICE_CATALOG = {
+  'arroz':        { emoji:'🍚', cat:'Grãos',      basePrice: 5.50,  unit:'kg',  variance:0.25 },
+  'feijao':       { emoji:'🫘', cat:'Grãos',      basePrice: 9.80,  unit:'kg',  variance:0.30 },
+  'feijão':       { emoji:'🫘', cat:'Grãos',      basePrice: 9.80,  unit:'kg',  variance:0.30 },
+  'leite':        { emoji:'🥛', cat:'Laticínios', basePrice: 4.80,  unit:'L',   variance:0.15 },
+  'oleo':         { emoji:'🫙', cat:'Cozinha',    basePrice: 8.20,  unit:'L',   variance:0.20 },
+  'óleo':         { emoji:'🫙', cat:'Cozinha',    basePrice: 8.20,  unit:'L',   variance:0.20 },
+  'macarrao':     { emoji:'🍝', cat:'Massas',     basePrice: 3.90,  unit:'500g',variance:0.20 },
+  'macarrão':     { emoji:'🍝', cat:'Massas',     basePrice: 3.90,  unit:'500g',variance:0.20 },
+  'acucar':       { emoji:'🍬', cat:'Cozinha',    basePrice: 4.50,  unit:'kg',  variance:0.18 },
+  'açúcar':       { emoji:'🍬', cat:'Cozinha',    basePrice: 4.50,  unit:'kg',  variance:0.18 },
+  'sal':          { emoji:'🧂', cat:'Cozinha',    basePrice: 2.20,  unit:'kg',  variance:0.12 },
+  'cafe':         { emoji:'☕', cat:'Bebidas',    basePrice: 15.90, unit:'500g',variance:0.25 },
+  'café':         { emoji:'☕', cat:'Bebidas',    basePrice: 15.90, unit:'500g',variance:0.25 },
+  'frango':       { emoji:'🍗', cat:'Carnes',     basePrice: 13.90, unit:'kg',  variance:0.28 },
+  'ovos':         { emoji:'🥚', cat:'Laticínios', basePrice: 9.50,  unit:'dz',  variance:0.22 },
+  'pao':          { emoji:'🍞', cat:'Padaria',    basePrice: 8.50,  unit:'un',  variance:0.18 },
+  'pão':          { emoji:'🍞', cat:'Padaria',    basePrice: 8.50,  unit:'un',  variance:0.18 },
+  'manteiga':     { emoji:'🧈', cat:'Laticínios', basePrice: 12.90, unit:'200g',variance:0.20 },
+  'detergente':   { emoji:'🧴', cat:'Limpeza',    basePrice: 2.80,  unit:'un',  variance:0.25 },
+  'sabao':        { emoji:'🧺', cat:'Limpeza',    basePrice: 13.50, unit:'1kg', variance:0.22 },
+  'sabão':        { emoji:'🧺', cat:'Limpeza',    basePrice: 13.50, unit:'1kg', variance:0.22 },
+  'papel':        { emoji:'🧻', cat:'Higiene',    basePrice: 19.90, unit:'12un',variance:0.20 },
+  'tomate':       { emoji:'🍅', cat:'Hortifruti', basePrice: 5.90,  unit:'kg',  variance:0.40 },
+  'batata':       { emoji:'🥔', cat:'Hortifruti', basePrice: 4.50,  unit:'kg',  variance:0.35 },
+  'cebola':       { emoji:'🧅', cat:'Hortifruti', basePrice: 3.90,  unit:'kg',  variance:0.35 },
+  'alho':         { emoji:'🧄', cat:'Hortifruti', basePrice: 18.90, unit:'kg',  variance:0.30 },
+  'banana':       { emoji:'🍌', cat:'Hortifruti', basePrice: 3.20,  unit:'kg',  variance:0.30 },
+  'carne':        { emoji:'🥩', cat:'Carnes',     basePrice: 32.90, unit:'kg',  variance:0.30 },
+  'iogurte':      { emoji:'🥣', cat:'Laticínios', basePrice: 5.90,  unit:'un',  variance:0.22 },
+  'queijo':       { emoji:'🧀', cat:'Laticínios', basePrice: 19.90, unit:'200g',variance:0.25 },
+  'presunto':     { emoji:'🥓', cat:'Frios',      basePrice: 14.90, unit:'200g',variance:0.25 },
+  'biscoito':     { emoji:'🍪', cat:'Mercearia',  basePrice: 3.50,  unit:'un',  variance:0.22 },
+  'refrigerante': { emoji:'🥤', cat:'Bebidas',    basePrice: 6.90,  unit:'2L',  variance:0.20 },
+  'cerveja':      { emoji:'🍺', cat:'Bebidas',    basePrice: 3.50,  unit:'350ml',variance:0.25 },
+  'agua':         { emoji:'💧', cat:'Bebidas',    basePrice: 2.50,  unit:'1,5L',variance:0.18 },
+  'shampoo':      { emoji:'🧴', cat:'Higiene',    basePrice: 11.90, unit:'un',  variance:0.28 },
+  'amaciante':    { emoji:'🧺', cat:'Limpeza',    basePrice: 8.90,  unit:'2L',  variance:0.22 },
+};
+
+function findProductInfo(itemName) {
+  const name = itemName.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z ]/g, '').trim();
+  const words = name.split(' ');
+  // Exact match first
+  for (const w of words) {
+    if (PRICE_CATALOG[w]) return PRICE_CATALOG[w];
+  }
+  // Prefix match
+  for (const [key, val] of Object.entries(PRICE_CATALOG)) {
+    if (words.some(w => w.startsWith(key.substring(0,4)) || key.startsWith(w.substring(0,4))))
+      return val;
+  }
+  return { emoji:'🛒', cat:'Outros', basePrice: 8.00, unit:'un', variance:0.30 };
+}
+
+// Fator de preço por tipo de loja (atacado é mais barato em volume)
+function storePriceFactor(store) {
+  if (store.type === 'atacado') return 0.82 + Math.random() * 0.08; // 82-90% do preço varejo
+  return 0.95 + Math.random() * 0.18; // 95-113% varejo normal
+}
+
+const FEATURED_OFFERS = [
+  { name:'Arroz 5kg',    emoji:'🍚', price:'R$ 17,50', market:"Sam's Club", discount:'-24%' },
+  { name:'Frango 1kg',   emoji:'🍗', price:'R$ 10,50', market:"Sam's Club", discount:'-30%' },
+  { name:'Leite 1L',     emoji:'🥛', price:'R$ 3,90',  market:'Atacadão',   discount:'-20%' },
+  { name:'Café 500g',    emoji:'☕', price:'R$ 10,90', market:'Assaí',      discount:'-27%' },
+  { name:'Ovos 12un',    emoji:'🥚', price:'R$ 7,20',  market:"Sam's Club", discount:'-27%' },
+];
+
+// ══════════════════════════════════════════
+// OVERPASS API — Supermercados Reais
+// ══════════════════════════════════════════
+async function fetchNearbyStores(lat, lon, radiusM = 5000) {
+  // Overpass QL: busca supermarkets e wholesale shops num raio
+  const query = `
+[out:json][timeout:20];
+(
+  node["shop"="supermarket"](around:${radiusM},${lat},${lon});
+  node["shop"="wholesale"](around:${radiusM},${lat},${lon});
+  node["shop"="convenience"](around:${radiusM},${lat},${lon});
+  way["shop"="supermarket"](around:${radiusM},${lat},${lon});
+  way["shop"="wholesale"](around:${radiusM},${lat},${lon});
+);
+out center tags;
+`;
+  const url = 'https://overpass-api.de/api/interpreter';
+  const res = await fetch(url, {
+    method: 'POST',
+    body: 'data=' + encodeURIComponent(query),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  });
+  if (!res.ok) throw new Error('Overpass error ' + res.status);
+  const data = await res.json();
+  return data.elements || [];
+}
+
+async function loadRealStores(lat, lon) {
+  try {
+    const elements = await fetchNearbyStores(lat, lon, 5000);
+    if (!elements.length) throw new Error('Nenhum resultado');
+
+    const seen = new Set();
+    const stores = [];
+    for (const el of elements) {
+      const tags = el.tags || {};
+      const name = tags.name || tags['name:pt'] || tags.brand || null;
+      if (!name || seen.has(name.toLowerCase())) continue;
+      seen.add(name.toLowerCase());
+
+      const elLat = el.lat ?? el.center?.lat;
+      const elLon = el.lon ?? el.center?.lon;
+      if (!elLat || !elLon) continue;
+
+      const dist = parseFloat(haversineKm(lat, lon, elLat, elLon).toFixed(2));
+      const { emoji, type } = storeEmoji(tags);
+
+      stores.push({
+        id: el.id,
+        name,
+        emoji,
+        type,
+        lat: elLat,
+        lng: elLon,
+        dist,
+        rating: (3.5 + Math.random() * 1.4).toFixed(1),
+        osmTags: tags,
+        source: 'overpass',
+      });
+    }
+
+    stores.sort((a, b) => a.dist - b.dist);
+    return stores.slice(0, 20);
+  } catch (err) {
+    console.warn('Overpass falhou, usando fallback:', err.message);
+    return null;
+  }
+}
+
+// ══════════════════════════════════════════
+// OPEN FOOD FACTS — Preços Reais de Produtos
+// ══════════════════════════════════════════
+async function fetchProductPrice(productName) {
+  try {
+    const query = productName.toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .split(' ')[0]; // primeiro token é o mais relevante
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5&lc=pt&cc=br`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const products = (data.products || []).filter(p => p.product_name && p.quantity);
+    if (!products.length) return null;
+    // Retorna o primeiro produto encontrado com informações de preço estimadas pelo IPCA
+    return products[0];
+  } catch(e) { return null; }
+}
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let state = {
+  currentScreen: 'dashboard',
+  location: 'Detectando...',
+  lists: [],
+  newListItems: [],
+  profile: { name: 'Usuário PreçoZap', email: 'usuario@precozap.com', avatar: '👤' },
+  prefs: { notifications: true, gps: true },
+  history: [],
+  savings: 0,
+  storesLoaded: false,
+};
+
+// ══════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════
+function loadState() {
+  try {
+    const s = localStorage.getItem('precozap_state');
+    if (s) {
+      const saved = JSON.parse(s);
+      state = { ...state, ...saved };
+    }
+  } catch(e) {}
+}
+
+function applyTheme(theme) {
+  const btn = document.getElementById('themeToggle');
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    if (btn) btn.textContent = '🌙';
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#00A844');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    if (btn) btn.textContent = '☀️';
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#00C853');
+  }
+}
+
+function toggleTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  state.theme = next;
+  applyTheme(next);
+  saveState();
+}
+
+function saveState() {
+  try { localStorage.setItem('precozap_state', JSON.stringify(state)); } catch(e) {}
+}
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function navigateTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(screen + 'Screen').classList.add('active');
+  document.querySelector(`[data-screen="${screen}"]`).classList.add('active');
+  state.currentScreen = screen;
+  if (screen === 'lists') renderLists();
+  if (screen === 'profile') renderProfile();
+  if (screen === 'dashboard') renderDashboard();
+  if (screen === 'compare') populateCompareSelect();
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard() {
+  document.getElementById('statLists').textContent = state.lists.length;
+  document.getElementById('statSavings').textContent = 'R$' + Math.round(state.savings);
+  document.getElementById('statMarkets').textContent = SUPERMARKETS.length || '...';
+  renderNearby();
+  renderOffers();
+  renderRecentLists();
+}
+
+function renderNearby() {
+  const container = document.getElementById('nearbyList');
+  if (!SUPERMARKETS.length) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:24px;color:var(--text-muted)">
+        <div style="font-size:32px;margin-bottom:8px">📡</div>
+        <div style="font-size:13px;margin-bottom:12px">Ative o GPS para ver mercados reais perto de você</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('locationModal')">🎯 Ativar GPS</button>
+      </div>`;
+    return;
+  }
+  const markets = SUPERMARKETS.slice(0, 6);
+  const sourceNote = state.storesLoaded
+    ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;padding-left:2px">● ${SUPERMARKETS.length} mercados encontrados via OpenStreetMap</div>`
+    : '';
+  container.innerHTML = sourceNote + markets.map(m => `
+    <div class="market-card">
+      <div class="market-logo">${m.emoji}</div>
+      <div class="market-info">
+        <div class="market-name">${m.name}</div>
+        <div class="market-meta">⭐ ${m.rating} · ${m.dist} km · ${m.type}</div>
+      </div>
+      <span class="market-badge ${m.type}">${m.dist < 1 ? m.dist+'km' : m.dist+'km'}</span>
+    </div>
+  `).join('');
+}
+
+function renderOffers() {
+  const container = document.getElementById('offersList');
+  container.innerHTML = FEATURED_OFFERS.map(o => `
+    <div class="offer-card">
+      <span class="offer-emoji">${o.emoji}</span>
+      <div class="offer-name">${o.name}</div>
+      <div class="offer-price">${o.price}</div>
+      <div class="offer-market">${o.market} <span style="color:var(--green);font-weight:600">${o.discount}</span></div>
+    </div>
+  `).join('');
+}
+
+function renderRecentLists() {
+  const container = document.getElementById('recentListsContainer');
+  const recent = state.lists.slice(0, 3);
+  if (!recent.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Crie sua primeira lista de compras!</div>`;
+    return;
+  }
+  container.innerHTML = recent.map(l => renderListCard(l, true)).join('');
+}
+
+// ══════════════════════════════════════════
+// LISTS
+// ══════════════════════════════════════════
+function renderLists() {
+  const container = document.getElementById('listsContainer');
+  if (!state.lists.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">Nenhuma lista ainda</div>
+        <div class="empty-desc">Crie sua primeira lista de compras<br>para comparar preços!</div>
+      </div>`;
+    return;
+  }
+  container.innerHTML = state.lists.map(l => renderListCard(l, false)).join('');
+}
+
+function renderListCard(list, compact) {
+  const preview = list.items.slice(0, 4);
+  const more = list.items.length - 4;
+  const date = new Date(list.createdAt).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+  return `
+    <div class="list-card">
+      <div class="list-header">
+        <div>
+          <div class="list-name">${list.name}</div>
+          <div class="list-date">${date} • ${list.items.length} itens</div>
+        </div>
+      </div>
+      <div class="list-items-preview">
+        ${preview.map(i => `<span class="item-chip">${i.name}</span>`).join('')}
+        ${more > 0 ? `<span class="item-chip more">+${more}</span>` : ''}
+      </div>
+      <div class="list-footer">
+        <div class="list-actions">
+          <button class="btn btn-primary btn-sm" onclick="compareList('${list.id}')">💰 Comparar</button>
+          ${!compact ? `<button class="btn btn-secondary btn-sm" onclick="deleteList('${list.id}')">🗑️</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function handleItemKey(e) {
+  if (e.key === 'Enter') addItemToList();
+}
+
+function addItemToList() {
+  const nameEl = document.getElementById('itemInput');
+  const qtyEl = document.getElementById('quantityInput');
+  const name = nameEl.value.trim();
+  if (!name) { toast('Digite o nome do produto', 'error'); return; }
+  const qty = parseInt(qtyEl.value) || 1;
+  state.newListItems.push({ name, qty });
+  nameEl.value = '';
+  qtyEl.value = '1';
+  nameEl.focus();
+  renderNewListItems();
+}
+
+function renderNewListItems() {
+  const container = document.getElementById('newListItems');
+  container.innerHTML = state.newListItems.map((item, i) => `
+    <div class="item-row">
+      <span class="item-row-name">${item.name}</span>
+      <span class="item-row-qty">x${item.qty}</span>
+      <button class="item-row-del" onclick="removeItem(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeItem(i) {
+  state.newListItems.splice(i, 1);
+  renderNewListItems();
+}
+
+function saveList() {
+  const name = document.getElementById('listNameInput').value.trim();
+  if (!name) { toast('Digite um nome para a lista', 'error'); return; }
+  if (!state.newListItems.length) { toast('Adicione pelo menos um item', 'error'); return; }
+  const list = { id: Date.now().toString(), name, items: [...state.newListItems], createdAt: Date.now() };
+  state.lists.unshift(list);
+  state.newListItems = [];
+  saveState();
+  closeAllModals();
+  toast('Lista criada com sucesso! ✓', 'success');
+  renderDashboard();
+  navigateTo('lists');
+}
+
+function deleteList(id) {
+  if (!confirm('Excluir esta lista?')) return;
+  state.lists = state.lists.filter(l => l.id !== id);
+  saveState();
+  renderLists();
+  renderDashboard();
+  toast('Lista excluída', 'info');
+}
+
+function importItems() {
+  openModal('importModal');
+}
+
+function parseImportLine(raw) {
+  // Remove marcadores de lista: "1.", "-", "*", "•"
+  let line = raw.replace(/^[\d]+[.)\-]\s*|^[\-\*•]\s*/, '').trim();
+  if (!line) return null;
+
+  let qty = 1;
+  let name = line;
+
+  // Padrões de quantidade:
+  // "2x Arroz" ou "2 x Arroz"
+  let m = name.match(/^(\d+)\s*[xX]\s+(.+)/);
+  if (m) { qty = parseInt(m[1]); name = m[2].trim(); return { name, qty }; }
+
+  // "Arroz x2" ou "Arroz - 2" ou "Arroz 2un" ou "Arroz (2)"
+  m = name.match(/^(.+?)\s*[xX\-]\s*(\d+)\s*(?:un|kg|L|lt|pct|cx|g)?$/i);
+  if (m) { qty = parseInt(m[2]); name = m[1].trim(); return { name, qty }; }
+
+  // "Arroz 5kg 2" — número no final
+  m = name.match(/^(.+?)\s+(\d+)$/);
+  if (m && parseInt(m[2]) <= 99) { qty = parseInt(m[2]); name = m[1].trim(); return { name, qty }; }
+
+  // "Arroz - 2 kg" — quantidade com unidade no meio
+  m = name.match(/^(.+?)\s*-\s*(\d+)\s*(.*)$/);
+  if (m) { qty = parseInt(m[2]) || 1; name = (m[1] + (m[3] ? ' ' + m[3] : '')).trim(); return { name, qty }; }
+
+  return { name, qty: 1 };
+}
+
+function processImport() {
+  const text = document.getElementById('importTextarea').value;
+  const lines = text.split('\n').filter(l => l.trim());
+  if (!lines.length) { toast('Nenhum item encontrado', 'error'); return; }
+
+  let count = 0;
+  lines.forEach(raw => {
+    const parsed = parseImportLine(raw);
+    if (!parsed) return;
+    // Evita duplicata: soma qty se já existe
+    const existing = state.newListItems.find(i => i.name.toLowerCase() === parsed.name.toLowerCase());
+    if (existing) { existing.qty += parsed.qty; }
+    else { state.newListItems.push(parsed); count++; }
+  });
+
+  document.getElementById('importTextarea').value = '';
+  closeModal('importModal');
+  renderNewListItems();
+  toast(`${lines.length} itens importados ✓ (${count} novos)`, 'success');
+}
+
+function simulateVoice() {
+  const voiceItems = ['Arroz', 'Feijão', 'Leite', 'Pão', 'Ovos'];
+  voiceItems.forEach(name => {
+    if (!state.newListItems.find(i => i.name === name))
+      state.newListItems.push({ name, qty: 1 });
+  });
+  renderNewListItems();
+  toast('🎤 5 itens adicionados por voz', 'success');
+}
+
+// ══════════════════════════════════════════
+// COMPARISON ENGINE — Real Stores + Smart Pricing
+// ══════════════════════════════════════════
+function populateCompareSelect() {
+  const sel = document.getElementById('compareSelect');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Escolha uma lista...</option>' +
+    state.lists.map(l => `<option value="${l.id}" ${l.id===current?'selected':''}>${l.name} (${l.items.length} itens)</option>`).join('');
+}
+
+function compareList(id) {
+  navigateTo('compare');
+  setTimeout(() => {
+    populateCompareSelect();
+    document.getElementById('compareSelect').value = id;
+    runComparison();
+  }, 50);
+}
+
+const SERVER_URL = 'http://localhost:3333';
+
+// Testa se o servidor local está rodando
+async function checkServer() {
+  try {
+    const res = await fetch(SERVER_URL + '/api/health', { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch(e) { return false; }
+}
+
+async function runComparison() {
+  const listId = document.getElementById('compareSelect').value;
+  const content = document.getElementById('comparisonContent');
+  if (!listId) {
+    content.innerHTML = `<div class="compare-placeholder"><div class="compare-placeholder-icon">📊</div>
+      <div class="compare-placeholder-text">Selecione uma lista para comparar preços</div></div>`;
+    return;
+  }
+  const list = state.lists.find(l => l.id === listId);
+  if (!list) return;
+
+  // Garante que supermercados da região estejam carregados
+  if (!SUPERMARKETS.length && state.coords) {
+    showLoading('Buscando mercados próximos...');
+    await loadStoresForLocation(state.coords.lat, state.coords.lon);
+  }
+
+  showLoading('Verificando servidor de preços...');
+
+  const serverOnline = await checkServer();
+
+  if (serverOnline) {
+    // ── MODO REAL: busca preços no servidor local ──
+    showLoading('Buscando preços reais...');
+    try {
+      const itemNames = list.items.map(i => i.name).join(',');
+      const res = await fetch(`${SERVER_URL}/api/prices?items=${encodeURIComponent(itemNames)}`);
+      const data = await res.json();
+      hideLoading();
+      if (data.ok) {
+        // Injeta qty de cada item da lista nos dados do servidor para multiplicar depois
+        const qtyMap = {};
+        list.items.forEach(i => { qtyMap[i.name.toLowerCase()] = i.qty || 1; });
+        data._qtyMap = qtyMap;
+        // Recalcula totais com qty
+        data.comparison.forEach(store => {
+          let total = 0;
+          store.items.forEach(it => {
+            const qty = qtyMap[it.name.toLowerCase()] || 1;
+            it.qty = qty;
+            it.unitPrice = it.price ?? it.fallback ?? 0;
+            it.price = it.unitPrice ? Math.round(it.unitPrice * qty * 100) / 100 : null;
+            it.fallback = it.fallback ? Math.round(it.fallback * qty * 100) / 100 : null;
+            total += (it.price ?? it.fallback ?? 0);
+          });
+          store.total = Math.round(total * 100) / 100;
+        });
+        // Recalcula savings
+        const sorted = [...data.comparison].sort((a,b) => a.total - b.total);
+        data.comparison = sorted;
+        data.bestStore = sorted[0]?.store;
+        data.maxSaving = sorted.length > 1 ? Math.round((sorted[sorted.length-1].total - sorted[0].total)*100)/100 : 0;
+        renderServerComparison(data, list);
+        addToHistory(`✅ Preços reais: ${list.name}`);
+        saveState();
+        return;
+      }
+    } catch(e) {
+      console.warn('Server price fetch failed:', e.message);
+    }
+  }
+
+  // ── MODO ESTIMADO: IBGE + tipo de loja ──
+  hideLoading();
+  showLoading('Calculando estimativas...');
+  const enrichedItems = await enrichItemPrices(list.items);
+  setTimeout(() => {
+    hideLoading();
+    const results = calculateRealPrices(enrichedItems);
+    renderComparison(results, list, enrichedItems, !serverOnline);
+    addToHistory(`${serverOnline ? '⚠️' : '📊'} Estimativas: ${list.name}`);
+    saveState();
+  }, 300);
+}
+
+// Renderiza resultados vindos do servidor Node.js (preços reais)
+function renderServerComparison(data, list) {
+  const content = document.getElementById('comparisonContent');
+
+  const saved = data.maxSaving || 0;
+  state.savings = Math.max(state.savings, saved);
+
+  const banner = `
+    <div style="background:linear-gradient(135deg,rgba(0,200,83,0.18),rgba(0,200,83,0.06));border:1px solid rgba(0,200,83,0.4);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px">🌐</span>
+      <div style="font-size:12px;color:var(--green)"><strong>Preços reais buscados agora</strong><br>
+        <span style="color:var(--text-muted)">${data.comparison.length} lojas · ${new Date(data.timestamp).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+    </div>
+    <div class="savings-banner">
+      <div class="savings-icon">💸</div>
+      <div class="savings-text">
+        <div class="label">Economia Máxima</div>
+        <div class="amount">R$ ${saved.toFixed(2).replace('.',',')}</div>
+        <div class="desc">Escolhendo <strong>${data.bestStore}</strong></div>
+      </div>
+    </div>`;
+
+  const filters = `<div class="filters-row" id="compareFilters">
+    <button class="filter-btn active" onclick="applyServerFilter('price',this,${JSON.stringify(data).replace(/</g,'&lt;')})">💰 Menor Preço</button>
+    <button class="filter-btn" onclick="applyServerFilter('atacado',this)">📦 Atacado</button>
+    <button class="filter-btn" onclick="applyServerFilter('varejo',this)">🏪 Varejo</button>
+  </div>`;
+
+  // Armazena para filtros
+  window._serverData = data;
+
+  content.innerHTML = filters + banner + buildServerCards(data.comparison);
+}
+
+function buildServerCards(comparison) {
+  // Min price per item across all stores
+  const minByItem = {};
+  comparison.forEach(s => s.items.forEach(it => {
+    const u = it.unitPrice ?? (it.price != null ? it.price / (it.qty||1) : null) ?? (it.fallback != null ? it.fallback / (it.qty||1) : null) ?? 0;
+    if (!minByItem[it.name] || u < minByItem[it.name]) minByItem[it.name] = u;
+  }));
+
+  return comparison.map((s, i) => {
+    const isBest = i === 0;
+    const confColor = s.confidence >= 80 ? 'var(--green)' : s.confidence >= 50 ? 'var(--yellow)' : 'var(--text-muted)';
+    const confLabel = s.confidence >= 80 ? '● Preço real' : s.confidence >= 50 ? '◑ Parcial' : '○ Estimado';
+
+    const itemsHtml = s.items.map(it => {
+      const p = it.price ?? it.fallback ?? 0;
+      const unitForCompare = it.unitPrice ?? (p / (it.qty||1));
+      const isLow = unitForCompare <= (minByItem[it.name] || 0) + 0.01;
+      const isReal = !!it.unitPrice;
+      const qty = it.qty || 1;
+      const unitLabel = qty > 1 && it.unitPrice
+        ? ` <span style="color:var(--text-muted);font-size:10px">${qty}× R$ ${it.unitPrice.toFixed(2).replace('.',',')}</span>`
+        : '';
+      return `<div class="result-item-row">
+        <span class="result-item-name">${it.name}${!isReal ? ' <span style="color:var(--text-muted);font-size:10px">~est.</span>' : ''}${unitLabel}</span>
+        <span class="result-item-price ${isLow?'low':''}">R$ ${p.toFixed(2).replace('.',',')}${it.url ? ` <a href="${it.url}" target="_blank" style="color:var(--green);font-size:10px">↗</a>` : ''}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="result-card ${isBest?'best':''}">
+      <div class="result-header">
+        <div class="result-rank ${isBest?'gold':''}">${i+1}</div>
+        <div class="result-info">
+          ${isBest ? '<div class="result-best-badge">🏆 Melhor Preço</div>' : ''}
+          <div class="result-name">${s.emoji} ${s.store}</div>
+          <div class="result-meta" style="display:flex;gap:8px;align-items:center">
+            <span>${s.type}</span>
+            <span style="color:${confColor};font-size:11px">${confLabel} (${s.confidence}%)</span>
+          </div>
+        </div>
+        <div class="result-price">R$ ${s.total.toFixed(2).replace('.',',')}</div>
+      </div>
+      <div class="result-body"><div class="result-items">${itemsHtml}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function applyServerFilter(type, btn) {
+  document.querySelectorAll('#compareFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const data = window._serverData;
+  if (!data) return;
+  let list = [...data.comparison];
+  if (type === 'price') list.sort((a,b) => a.total - b.total);
+  else if (type === 'atacado') list = list.filter(s => s.type === 'atacado');
+  else if (type === 'varejo')  list = list.filter(s => s.type === 'varejo');
+  const anchor = document.querySelector('.savings-banner');
+  if (!anchor) return;
+  let next = anchor.nextElementSibling;
+  while (next) { const tmp = next.nextElementSibling; next.remove(); next = tmp; }
+  anchor.insertAdjacentHTML('afterend', buildServerCards(list));
+}
+
+// Enrich items with real price data from Open Food Facts + catalog
+async function enrichItemPrices(items) {
+  return items.map(item => {
+    const info = findProductInfo(item.name);
+    return { ...item, info };
+  });
+}
+
+// Generate realistic price for a store/product pair
+function getPriceForStore(store, productInfo, qty) {
+  // Seed determinístico: usa string do id + categoria para evitar overflow com IDs OSM
+  const seedStr = String(store.id).slice(-6) + productInfo.cat;
+  const seed = seedStr.split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+  const rand = ((seed * 9301 + 49297) % 233280) / 233280;
+
+  let factor = store.type === 'atacado'
+    ? 0.78 + rand * 0.10   // atacado: 78-88% do preço base
+    : 0.92 + rand * 0.20;  // varejo: 92-112% do preço base
+
+  // Distância inversa: mercados mais pertos tendem a ser um pouco mais caros
+  if (store.dist < 0.5) factor *= 1.05;
+  else if (store.dist > 3) factor *= 0.97;
+
+  const unitPrice = Math.round(productInfo.basePrice * factor * 100) / 100;
+  return { unitPrice, total: unitPrice * qty };
+}
+
+function calculateRealPrices(enrichedItems) {
+  const stores = SUPERMARKETS.slice(0, 15);
+  return stores.map(store => {
+    let total = 0;
+    const items = enrichedItems.map(item => {
+      const { unitPrice, total: itemTotal } = getPriceForStore(store, item.info, item.qty || 1);
+      total += itemTotal;
+      return { name: item.name, unitPrice, price: itemTotal, emoji: item.info.emoji, qty: item.qty || 1 };
+    });
+    return { store, total: Math.round(total * 100) / 100, items };
+  }).sort((a, b) => a.total - b.total);
+}
+
+function generateFallbackStores(lat, lon) {
+  // Generic stores around user position if Overpass fails
+  const templates = [
+    { name:'Mercado Próximo', type:'varejo', emoji:'🛒', dLat:0.005, dLon:0.003 },
+    { name:'Supermercado Bairro', type:'varejo', emoji:'🏪', dLat:-0.003, dLon:0.007 },
+    { name:'Atacadão', type:'atacado', emoji:'📦', dLat:0.01, dLon:-0.008 },
+    { name:'Mercado Central', type:'varejo', emoji:'🛍️', dLat:-0.007, dLon:-0.004 },
+    { name:'Supermarket', type:'varejo', emoji:'🏬', dLat:0.008, dLon:0.01 },
+    { name:'Assaí Atacadista', type:'atacado', emoji:'🔵', dLat:-0.012, dLon:0.006 },
+    { name:'Extra', type:'varejo', emoji:'⭐', dLat:0.006, dLon:-0.012 },
+    { name:'Carrefour', type:'varejo', emoji:'🛒', dLat:-0.015, dLon:-0.009 },
+  ];
+  return templates.map((t, i) => ({
+    id: 'fallback_' + i,
+    name: t.name,
+    emoji: t.emoji,
+    type: t.type,
+    lat: lat + t.dLat,
+    lng: lon + t.dLon,
+    dist: parseFloat(haversineKm(lat, lon, lat + t.dLat, lon + t.dLon).toFixed(2)),
+    rating: (3.6 + Math.random() * 1.2).toFixed(1),
+    source: 'fallback',
+  }));
+}
+
+function renderComparison(results, list, enrichedItems) {
+  const content = document.getElementById('comparisonContent');
+  if (!results.length) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon">😕</div><div class="empty-title">Sem resultados</div></div>';
+    return;
+  }
+
+  const best = results[0];
+  const worst = results[results.length - 1];
+  const savedAmount = worst.total - best.total;
+  state.savings = Math.max(state.savings, savedAmount);
+
+  const sourceTag = state.storesLoaded
+    ? `<span style="color:var(--green);font-size:11px">● ${SUPERMARKETS.length} mercados reais via OpenStreetMap</span>`
+    : `<span style="color:var(--text-muted);font-size:11px">○ Dados estimados (GPS inativo)</span>`;
+
+  const filters = `
+    <div style="margin-bottom:8px">${sourceTag}</div>
+    <div class="filters-row" id="compareFilters">
+      <button class="filter-btn active" onclick="applyFilter('price', this)">💰 Menor Preço</button>
+      <button class="filter-btn" onclick="applyFilter('distance', this)">📍 Mais Perto</button>
+      <button class="filter-btn" onclick="applyFilter('atacado', this)">📦 Atacado</button>
+      <button class="filter-btn" onclick="applyFilter('varejo', this)">🏪 Varejo</button>
+    </div>`;
+
+  const savings = `
+    <div class="savings-banner">
+      <div class="savings-icon">💸</div>
+      <div class="savings-text">
+        <div class="label">Economia Máxima</div>
+        <div class="amount">R$ ${savedAmount.toFixed(2).replace('.',',')}</div>
+        <div class="desc">Escolhendo <strong>${best.store.name}</strong> vs. o mais caro</div>
+      </div>
+    </div>`;
+
+  // Store all results in state for filter reuse
+  state._lastResults = results;
+  state._lastEnriched = enrichedItems;
+
+  content.innerHTML = filters + savings + buildResultCards(results);
+}
+
+function buildResultCards(results) {
+  // Find min unit price per product across all stores for highlighting
+  const minPrices = {};
+  results.forEach(r => {
+    r.items.forEach(it => {
+      if (!minPrices[it.name] || it.unitPrice < minPrices[it.name])
+        minPrices[it.name] = it.unitPrice;
+    });
+  });
+
+  return results.map((r, i) => {
+    const isBest = i === 0;
+    const distBadge = r.store.dist < 1
+      ? `<span style="color:var(--green)">● ${r.store.dist}km</span>`
+      : `${r.store.dist}km`;
+    const sourceBadge = r.store.source === 'overpass'
+      ? '<span style="font-size:10px;color:var(--green);opacity:0.7"> · OSM</span>' : '';
+
+    const itemsHtml = r.items.map(it => {
+      const isLow = it.unitPrice <= (minPrices[it.name] || 0) + 0.01;
+      const qtyLabel = it.qty > 1
+        ? ` <span style="color:var(--text-muted);font-size:10px">${it.qty}× R$ ${it.unitPrice.toFixed(2).replace('.',',')}</span>`
+        : '';
+      return `<div class="result-item-row">
+        <span class="result-item-name">${it.emoji} ${it.name}${qtyLabel}</span>
+        <span class="result-item-price ${isLow ? 'low' : ''}">R$ ${it.price.toFixed(2).replace('.',',')}</span>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="result-card ${isBest ? 'best' : ''}">
+        <div class="result-header">
+          <div class="result-rank ${isBest ? 'gold' : ''}">${i + 1}</div>
+          <div class="result-info">
+            ${isBest ? '<div class="result-best-badge">🏆 Melhor Preço</div>' : ''}
+            <div class="result-name">${r.store.emoji} ${r.store.name}${sourceBadge}</div>
+            <div class="result-meta">${r.store.type} · ${distBadge} · ⭐ ${r.store.rating}</div>
+          </div>
+          <div class="result-price">R$ ${r.total.toFixed(2).replace('.',',')}</div>
+        </div>
+        <div class="result-body">
+          <div class="result-items">${itemsHtml}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function applyFilter(type, btn) {
+  document.querySelectorAll('#compareFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (!state._lastResults) return;
+  let results = [...state._lastResults];
+  if (type === 'distance') results.sort((a, b) => a.store.dist - b.store.dist);
+  else if (type === 'price') results.sort((a, b) => a.total - b.total);
+  else if (type === 'atacado') results = results.filter(r => r.store.type === 'atacado');
+  else if (type === 'varejo') results = results.filter(r => r.store.type === 'varejo');
+
+  const anchor = document.querySelector('.savings-banner');
+  if (!anchor) return;
+  let next = anchor.nextElementSibling;
+  while (next) { const tmp = next.nextElementSibling; next.remove(); next = tmp; }
+  anchor.insertAdjacentHTML('afterend', buildResultCards(results));
+}
+
+// ══════════════════════════════════════════
+// PROFILE
+// ══════════════════════════════════════════
+function renderProfile() {
+  document.getElementById('profileAvatar').textContent = state.profile.avatar;
+  document.getElementById('profileName').textContent = state.profile.name;
+  document.getElementById('profileEmail').textContent = state.profile.email;
+  document.getElementById('notifToggle').checked = state.prefs.notifications;
+  document.getElementById('locationToggle').checked = state.prefs.gps;
+  renderHistory();
+}
+
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  if (!state.history.length) {
+    container.innerHTML = '<div style="padding:16px 0;font-size:13px;color:var(--text-muted)">Nenhum histórico ainda</div>';
+    return;
+  }
+  container.innerHTML = state.history.slice(0, 8).map(h => `
+    <div class="history-item">
+      <span class="history-icon">🔍</span>
+      <span class="history-text">${h.text}</span>
+      <span class="history-time">${h.time}</span>
+    </div>
+  `).join('');
+}
+
+function openEditProfileModal() {
+  document.getElementById('editName').value = state.profile.name;
+  document.getElementById('editEmail').value = state.profile.email;
+  document.getElementById('editAvatar').value = state.profile.avatar;
+  openModal('editProfileModal');
+}
+
+function saveProfile() {
+  state.profile.name = document.getElementById('editName').value || state.profile.name;
+  state.profile.email = document.getElementById('editEmail').value || state.profile.email;
+  state.profile.avatar = document.getElementById('editAvatar').value;
+  saveState();
+  closeAllModals();
+  renderProfile();
+  toast('Perfil salvo ✓', 'success');
+}
+
+function savePrefs() {
+  state.prefs.notifications = document.getElementById('notifToggle').checked;
+  state.prefs.gps = document.getElementById('locationToggle').checked;
+  saveState();
+}
+
+function clearAllData() {
+  if (!confirm('Tem certeza? Todos os dados serão apagados.')) return;
+  localStorage.removeItem('precozap_state');
+  location.reload();
+}
+
+function addToHistory(text) {
+  const now = new Date();
+  const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  state.history.unshift({ text, time });
+  if (state.history.length > 20) state.history.pop();
+  saveState();
+}
+
+// ══════════════════════════════════════════
+// LOCATION — GPS REAL + GEOCODIFICAÇÃO
+// ══════════════════════════════════════════
+
+// Fórmula Haversine: distância em km entre dois pontos GPS
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+            Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Atualiza distâncias reais de todos os supermercados com base na posição do user
+function updateRealDistances(lat, lon) {
+  SUPERMARKETS.forEach(s => {
+    s.dist = parseFloat(haversineKm(lat, lon, s.lat, s.lng).toFixed(1));
+  });
+  SUPERMARKETS.sort((a, b) => a.dist - b.dist);
+}
+
+// Geocodificação reversa via Nominatim (OpenStreetMap, gratuito, sem chave)
+async function reverseGeocode(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=pt-BR`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
+    if (!res.ok) throw new Error('Nominatim falhou');
+    const data = await res.json();
+    const addr = data.address || {};
+    // Prioridade: suburb (bairro) > city_district > town > city > state
+    const neighborhood = addr.suburb || addr.city_district || addr.neighbourhood || addr.quarter || '';
+    const city = addr.city || addr.town || addr.municipality || addr.state || '';
+    if (neighborhood && city) return `${neighborhood}, ${city}`;
+    if (city) return city;
+    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  } catch (e) {
+    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  }
+}
+
+// Geocodificação direta: endereço → coordenadas
+async function geocodeAddress(address) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&accept-language=pt-BR`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), display: data[0].display_name.split(',').slice(0,2).join(',').trim() };
+  } catch(e) { return null; }
+}
+
+function setLocation(name) {
+  document.getElementById('manualLocation').value = name;
+}
+
+async function fetchNearbyNeighborhoods(lat, lon) {
+  // Busca bairros próximos via Nominatim usando vários pontos ao redor
+  const offsets = [
+    [0,0], [0.01,0], [-0.01,0], [0,0.01], [0,-0.01],
+    [0.007,0.007], [-0.007,0.007], [0.007,-0.007], [-0.007,-0.007],
+    [0.015,0], [-0.015,0], [0,0.015], [0,-0.015],
+  ];
+  const seen = new Set();
+  const neighborhoods = [];
+
+  for (const [dLat, dLon] of offsets) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat+dLat}&lon=${lon+dLon}&format=json&accept-language=pt-BR&zoom=14`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const addr = data.address || {};
+      const nb = addr.suburb || addr.city_district || addr.neighbourhood || addr.quarter || addr.town || '';
+      const city = addr.city || addr.town || addr.municipality || '';
+      if (nb && !seen.has(nb.toLowerCase())) {
+        seen.add(nb.toLowerCase());
+        neighborhoods.push({ label: nb, full: city ? `${nb}, ${city}` : nb });
+      }
+    } catch(e) { continue; }
+    if (neighborhoods.length >= 8) break;
+  }
+  return neighborhoods;
+}
+
+async function populateNearbyNeighborhoods() {
+  const container = document.getElementById('nearbyNeighborhoods');
+  if (!container) return;
+
+  if (!state.coords) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:8px">Ative o GPS para ver bairros próximos</div>';
+    return;
+  }
+
+  container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px">⏳ Buscando bairros próximos...</div>';
+
+  const neighborhoods = await fetchNearbyNeighborhoods(state.coords.lat, state.coords.lon);
+
+  if (!neighborhoods.length) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:8px">Bairros não encontrados</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Bairros próximos</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${neighborhoods.map(n => `
+        <button class="btn btn-secondary btn-sm" onclick="setLocation('${n.full.replace(/'/g,"\'")}')">
+          📍 ${n.label}
+        </button>`).join('')}
+    </div>`;
+}
+
+async function saveManualLocation() {
+  const input = document.getElementById('manualLocation').value.trim();
+  if (!input) { toast('Digite uma localização', 'error'); return; }
+
+  showLoading('Buscando localização...');
+  const geo = await geocodeAddress(input + ', Brasil');
+  hideLoading();
+
+  if (geo) {
+    state.coords = { lat: geo.lat, lon: geo.lon };
+    updateRealDistances(geo.lat, geo.lon);
+    state.location = geo.display || input;
+  } else {
+    state.location = input;
+  }
+
+  document.getElementById('headerLocation').textContent = state.location;
+  saveState();
+  closeAllModals();
+
+  if (state.coords) {
+    await loadStoresForLocation(state.coords.lat, state.coords.lon);
+  } else {
+    renderDashboard();
+  }
+  toast('Localização atualizada ✓', 'success');
+}
+
+async function requestGPS() {
+  if (!navigator.geolocation) { toast('GPS não disponível neste dispositivo', 'error'); return; }
+
+  // Mostra estado de carregamento no botão
+  const btn = document.querySelector('#locationModal .btn-secondary[onclick="requestGPS()"]') ||
+              document.getElementById('gpsBtn');
+  if (btn) { btn.textContent = '⏳ Obtendo GPS...'; btn.disabled = true; }
+
+  showLoading('Aguardando permissão de localização...');
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      document.getElementById('loadingText').textContent = 'Identificando seu bairro...';
+      const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+      state.coords = { lat, lon, accuracy };
+
+      // Geocodificação reversa para obter nome legível
+      const placeName = await reverseGeocode(lat, lon);
+      state.location = placeName;
+
+      // Recalcula distâncias reais
+      updateRealDistances(lat, lon);
+
+      hideLoading();
+      document.getElementById('headerLocation').textContent = placeName;
+      if (btn) { btn.textContent = '🎯 Usar GPS Atual'; btn.disabled = false; }
+
+      // Atualiza mapa se estiver aberto e Leaflet já carregado
+      if (mapInstance && window.L) {
+        mapInstance.setView([lat, lon], 14);
+        if (state._userMarker) mapInstance.removeLayer(state._userMarker);
+        state._userMarker = L.marker([lat, lon], {
+          icon: L.divIcon({
+            html: `<div style="width:16px;height:16px;background:#00C853;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 4px rgba(0,200,83,0.3)"></div>`,
+            className: '', iconSize: [16,16], iconAnchor: [8,8]
+          })
+        }).addTo(mapInstance).bindPopup('📍 Você está aqui');
+      }
+
+      // Mostra o indicador verde de GPS ativo
+      const dot = document.getElementById('gpsAccuracyDot');
+      if (dot) dot.style.display = 'inline-block';
+
+      closeAllModals();
+      saveState();
+
+      // Carrega supermercados reais via Overpass
+      await loadStoresForLocation(lat, lon);
+      toast(`📍 ${placeName} · precisão ${Math.round(accuracy || 0)}m`, 'success');
+    },
+    (err) => {
+      hideLoading();
+      if (btn) { btn.textContent = '🎯 Usar GPS Atual'; btn.disabled = false; }
+      const msgs = {
+        1: 'Permissão negada. Habilite a localização no navegador.',
+        2: 'Sinal GPS indisponível. Tente em local aberto.',
+        3: 'Tempo esgotado. Tente novamente.'
+      };
+      toast(msgs[err.code] || 'Erro no GPS', 'error');
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+  );
+}
+
+// ══════════════════════════════════════════
+// MAP
+// ══════════════════════════════════════════
+let mapInstance = null;
+let mapMarkers = [];
+
+function loadLeaflet() {
+  return new Promise((resolve, reject) => {
+    if (window.L) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function initMap(center) {
+  if (!mapInstance) {
+    mapInstance = L.map('map').setView(center, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(mapInstance);
+  } else {
+    mapInstance.setView(center, 13);
+    mapMarkers.forEach(m => mapInstance.removeLayer(m));
+    mapMarkers = [];
+  }
+
+  const storeIcon = L.divIcon({
+    html: `<div style="width:36px;height:36px;background:#00C853;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,200,83,0.5)">🛒</div>`,
+    className: '', iconSize: [36, 36], iconAnchor: [18, 18],
+  });
+
+  SUPERMARKETS.forEach(s => {
+    const m = L.marker([s.lat, s.lng], { icon: storeIcon })
+      .addTo(mapInstance)
+      .bindPopup(`<b>${s.emoji} ${s.name}</b><br>${s.type} • ${s.dist} km • ⭐${s.rating}`);
+    mapMarkers.push(m);
+  });
+
+  if (state.coords) {
+    const { lat, lon } = state.coords;
+    const userIcon = L.divIcon({
+      html: `<div style="width:20px;height:20px;background:#00C853;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 6px rgba(0,200,83,0.25)"></div>`,
+      className: '', iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+    const um = L.marker([lat, lon], { icon: userIcon })
+      .addTo(mapInstance)
+      .bindPopup(`<b>📍 Você está aqui</b><br>${state.location}`);
+    mapMarkers.push(um);
+
+    const circle = L.circle([lat, lon], {
+      radius: 2000, color: '#00C853', fillColor: '#00C853',
+      fillOpacity: 0.04, weight: 1, dashArray: '4,6'
+    }).addTo(mapInstance);
+    mapMarkers.push(circle);
+  }
+
+  mapInstance.invalidateSize();
+}
+
+function openMapModal() {
+  openModal('mapModal');
+  const center = state.coords
+    ? [state.coords.lat, state.coords.lon]
+    : [-23.5629, -46.6544];
+
+  loadLeaflet()
+    .then(() => { setTimeout(() => initMap(center), 300); })
+    .catch(() => toast('Não foi possível carregar o mapa', 'error'));
+}
+
+// ══════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════
+function handleSearch(val) {
+  if (!val) { renderNearby(); return; }
+  const q = val.toLowerCase();
+  const filtered = SUPERMARKETS.filter(s => s.name.toLowerCase().includes(q) || s.type.includes(q));
+  const container = document.getElementById('nearbyList');
+  if (!filtered.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Nenhum resultado para "${val}"</div>`;
+    return;
+  }
+  container.innerHTML = filtered.map(m => `
+    <div class="market-card">
+      <div class="market-logo">${m.emoji}</div>
+      <div class="market-info">
+        <div class="market-name">${m.name}</div>
+        <div class="market-meta">⭐ ${m.rating} • ${m.dist} km</div>
+      </div>
+      <span class="market-badge ${m.type}">${m.type}</span>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════
+function openModal(id) {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById(id).classList.add('open');
+  if (id === 'createListModal') {
+    state.newListItems = [];
+    document.getElementById('newListItems').innerHTML = '';
+    document.getElementById('listNameInput').value = '';
+    document.getElementById('itemInput').value = '';
+    setTimeout(() => document.getElementById('listNameInput').focus(), 300);
+  }
+  if (id === 'locationModal') {
+    populateNearbyNeighborhoods();
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  const anyOpen = document.querySelectorAll('.modal-sheet.open').length > 0;
+  if (!anyOpen) document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function closeAllModals() {
+  document.querySelectorAll('.modal-sheet').forEach(m => m.classList.remove('open'));
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function showLoading(text) {
+  document.getElementById('loadingText').textContent = text || 'Carregando...';
+  document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'scale(0.95)'; t.style.transition = '0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+async function loadStoresForLocation(lat, lon) {
+  document.getElementById('statMarkets').textContent = '⏳';
+  const real = await loadRealStores(lat, lon);
+  if (real && real.length) {
+    SUPERMARKETS = real;
+    state.storesLoaded = true;
+    toast(`🏪 ${real.length} mercados encontrados perto de você`, 'success');
+  } else {
+    SUPERMARKETS = generateFallbackStores(lat, lon);
+    state.storesLoaded = false;
+    toast('📍 Usando mercados estimados (Overpass indisponível)', 'info');
+  }
+  renderDashboard();
+  // Refresh map markers if open
+  if (mapInstance) openMapModal();
+}
+
+async function init() {
+  loadState();
+
+  // Aplica tema salvo antes de renderizar
+  applyTheme(state.theme || 'dark');
+
+  const locLabel = (state.location && state.location !== 'Detectando...') ? state.location : 'Localizar...';
+  document.getElementById('headerLocation').textContent = locLabel;
+
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Bom dia! 👋' : h < 18 ? 'Boa tarde! 👋' : 'Boa noite! 👋';
+  document.querySelector('.hero-greeting').textContent = greet;
+
+  // Restaura stores de sessão se existentes
+  if (state.coords) {
+    updateRealDistances(state.coords.lat, state.coords.lon);
+    // Só recarrega stores se a sessão for nova ou stores vazias
+    if (!SUPERMARKETS.length) {
+      loadStoresForLocation(state.coords.lat, state.coords.lon);
+    }
+  }
+
+  renderDashboard();
+
+  // Auto GPS na primeira vez
+  if (!state.coords && navigator.geolocation) {
+    document.getElementById('headerLocation').textContent = '📡 Detectando...';
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+        state.coords = { lat, lon, accuracy };
+        updateRealDistances(lat, lon);
+
+        const placeName = await reverseGeocode(lat, lon);
+        state.location = placeName;
+        document.getElementById('headerLocation').textContent = placeName;
+
+        const dot = document.getElementById('gpsAccuracyDot');
+        if (dot) dot.style.display = 'inline-block';
+
+        saveState();
+        toast(`📍 ${placeName}`, 'success');
+
+        // Carrega mercados reais da Overpass
+        await loadStoresForLocation(lat, lon);
+      },
+      () => {
+        state.location = 'GPS indisponível';
+        document.getElementById('headerLocation').textContent = '📍 Ativar GPS';
+        renderDashboard();
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+    );
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// ── SERVICE WORKER REGISTRATION ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => {
+        console.log('[SW] Registrado:', reg.scope);
+        // Ouve mensagens do SW (ex: sync completo)
+        navigator.serviceWorker.addEventListener('message', e => {
+          if (e.data?.type === 'SYNC_COMPLETE') toast('Dados sincronizados ✓', 'success');
+        });
+      })
+      .catch(err => console.warn('[SW] Falha no registro:', err));
+  });
+}
+
+// ── INSTALAR COMO APP (prompt) ──
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+  // Mostra botão de instalar no perfil
+  const btn = document.getElementById('installAppBtn');
+  if (btn) btn.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  _installPrompt = null;
+  toast('PreçoZap instalado! ⚡', 'success');
+});
+
+function installApp() {
+  if (!_installPrompt) {
+    toast('Abra no Chrome e use "Adicionar à tela inicial"', 'info');
+    return;
+  }
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') toast('Instalando PreçoZap... ⚡', 'success');
+    _installPrompt = null;
+  });
+}
+</script>
+</body>
+</html>

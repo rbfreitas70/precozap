@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.rbfreitas70.twa",
+        "sha256_cert_fingerprints": ["A3:99:92:8F:A6:76:89:31:2A:EC:F5:DA:7C:61:AC:B5:98:BC:DA:A5:A4:A8:D5:B4:F7:F4:D9:92:A2:3F:AD:04"]
+      }
+    }]
